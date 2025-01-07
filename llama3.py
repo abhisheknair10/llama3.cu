@@ -43,6 +43,10 @@ class Llama3_Attention(nn.Module):
         mask = torch.triu(torch.ones(tokens, tokens), diagonal=1)
         mask = mask.masked_fill(mask == 1, float("-inf")).unsqueeze(0).unsqueeze(1)
         return mask.to(device)
+    
+    def rope(self, tensor):
+        # not implemented
+        return tensor
 
     def forward(self, X):
         # X: (b, tokens, embed_dim)
@@ -57,6 +61,8 @@ class Llama3_Attention(nn.Module):
 
         # V: (b, tokens, 1024) -> (b, nheads // 4, tokens, head_dim)
         V = self.Wv(X).reshape(batch, tokens, self.nheads // 4, self.head_dim).transpose(1, 2)
+
+        Q, K = self.rope(Q), self.rope(K)
 
         K = self.custom_expand(K, 4)
         V = self.custom_expand(V, 4)
