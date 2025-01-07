@@ -1,7 +1,7 @@
 # Llama3.cu - A LLaMA3-8B CUDA Inference Engine
 
 <div align="center">
-  <img src="https://github.com/abhisheknair10/Llama3.cu/blob/main/inference.png" alt="inference" width="800">
+  <img src="https://github.com/abhisheknair10/Llama3.cu/blob/main/llama.jpeg" alt="inference" width="800">
 </div>
 
 ##
@@ -56,6 +56,10 @@ huggingface-cli download meta-llama/Llama-3.1-8B-Instruct --local-dir ./model_we
 ```bash
 make run
 ```
+
+<div align="center">
+  <img src="https://github.com/abhisheknair10/Llama3.cu/blob/main/inference.png" alt="inference" width="800">
+</div>
 
 ## Acknowledgments
 
