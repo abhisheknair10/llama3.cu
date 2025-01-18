@@ -670,7 +670,7 @@ __global__ void kernel_rope_scaling(__half *tensor, int transformed_embed_size, 
     float odd = __half2float(h_odd);
 
     // Frequency calculation with floating-point division
-    float freq = 1.0f / powf((500000.0f, 2.0f * (float)(embed_idx % 64) / (128.0f));
+    float freq = 1.0f / powf(500000.0f, 2.0f * (float)(embed_idx % 64) / 128.0f);
     float angle = (float)token_idx * freq;
 
     // Compute cosine and sine components
