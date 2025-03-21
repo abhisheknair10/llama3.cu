@@ -201,7 +201,6 @@ void tokens_to_embeddings(Tensor *X, Llama3 *llama3_model, int *d_tokens) {
     kernel_tokens_to_embeddings<<<blocks, MAX_THREADS_PER_BLOCK>>>(
         X->d_fp16_tensor, d_tokens, llama3_model->embed_tokens->d_fp16_tensor,
         h_NUM_TOKENS);
-    cudaDeviceSynchronize();
 
     return;
 }
@@ -285,7 +284,6 @@ void compute_layer_norm(Tensor *RMSNorm, Tensor *X) {
 
     kernel_compute_rms_norm<<<grid, block>>>(
         X->d_fp16_tensor, RMSNorm->d_fp16_tensor, h_NUM_TOKENS);
-    cudaDeviceSynchronize();
 
     return;
 }
@@ -369,7 +367,6 @@ void add_norm(Tensor *X, Tensor *PN_X) {
 
     kernel_add_norm<<<grid, block>>>(
         X->d_fp16_tensor, PN_X->d_fp16_tensor, h_NUM_TOKENS);
-    cudaDeviceSynchronize();
 
     return;
 }
@@ -592,7 +589,6 @@ void compute_qkv_tensors(
     kernel_standard_tiled_gemm<<<grid, block, shared_mem_size>>>(
         V->d_fp16_tensor, X->d_fp16_tensor, L3_Layer->self_attn_v_proj->d_fp16_tensor,
         h_NUM_TOKENS, L3_Layer->self_attn_v_proj->shape[0], 4096, TILE_SIZE);
-    cudaDeviceSynchronize();
 
     return;
 }
@@ -612,7 +608,6 @@ void compute_output(Llama3Layer *L3_Layer, Tensor *X, CudaCache *Cache) {
     kernel_standard_tiled_gemm<<<grid, block, shared_mem_size>>>(
         X->d_fp16_tensor, Cache->Q->d_fp16_tensor, L3_Layer->self_attn_o_proj->d_fp16_tensor,
         h_NUM_TOKENS, L3_Layer->self_attn_o_proj->shape[0], 4096, TILE_SIZE);
-    cudaDeviceSynchronize();
 
     return;
 }
@@ -626,13 +621,11 @@ void rope_scaling(Tensor *Q, Tensor *K) {
     block = dim3(1024);
     grid = dim3(2, h_NUM_TOKENS);
     kernel_rope_scaling<<<grid, block>>>(Q->d_fp16_tensor, 2048, h_NUM_TOKENS);
-    cudaDeviceSynchronize();
 
     // RoPE on K
     block = dim3(256);
     grid = dim3(2, h_NUM_TOKENS);
     kernel_rope_scaling<<<grid, block>>>(K->d_fp16_tensor, 512, h_NUM_TOKENS);
-    cudaDeviceSynchronize();
 
     return;
 }
@@ -708,7 +701,6 @@ void compute_attention(Tensor *X, Tensor *Q, Tensor *K, Tensor *V, CudaCache *Ca
     kernel_compute_masked_gmq_attention_scores_tiled_matmul<<<grid, block, shared_mem>>>(
         Cache->d_attention_score_cache, Q->d_fp16_tensor, K->d_fp16_tensor,
         h_NUM_TOKENS, h_NUM_TOKENS, 128, TILE_SIZE, nheads);
-    cudaDeviceSynchronize();
 
     block = dim3(1024);
     grid = dim3(h_NUM_TOKENS, nheads);
@@ -716,7 +708,6 @@ void compute_attention(Tensor *X, Tensor *Q, Tensor *K, Tensor *V, CudaCache *Ca
     shared_mem = (2048 + 1024) * sizeof(float);
     kernel_masking_softmax<<<grid, block, shared_mem>>>(
         Cache->d_attention_score_cache, h_NUM_TOKENS);
-    cudaDeviceSynchronize();
 
     block = dim3(TILE_SIZE, TILE_SIZE);
     grid = dim3(
@@ -728,7 +719,6 @@ void compute_attention(Tensor *X, Tensor *Q, Tensor *K, Tensor *V, CudaCache *Ca
     kernel_compute_resolved_value_from_attention_score_tiled_matmul<<<grid, block, shared_mem>>>(
         X->d_fp16_tensor, Cache->d_attention_score_cache, V->d_fp16_tensor,
         h_NUM_TOKENS, 128, h_NUM_TOKENS, nheads, TILE_SIZE);
-    cudaDeviceSynchronize();
 
     return;
 }
@@ -962,7 +952,6 @@ void compute_feedforward(Tensor *X, Llama3Layer *L3_Layer, CudaCache *Cache) {
         Cache->d_feedforward_cache_upgate, X->d_fp16_tensor,
         L3_Layer->mlp_up_proj->d_fp16_tensor, L3_Layer->mlp_gate_proj->d_fp16_tensor,
         h_NUM_TOKENS, L3_Layer->mlp_gate_proj->shape[0], 4096, TILE_SIZE);
-    cudaDeviceSynchronize();
 
     // Final output feedforward output computation
     shared_mem_size = 2 * TILE_SIZE * TILE_SIZE * sizeof(float);
@@ -973,7 +962,6 @@ void compute_feedforward(Tensor *X, Llama3Layer *L3_Layer, CudaCache *Cache) {
     kernel_standard_tiled_gemm<<<grid, block, shared_mem_size>>>(
         X->d_fp16_tensor, Cache->d_feedforward_cache_upgate, L3_Layer->mlp_down_proj->d_fp16_tensor,
         h_NUM_TOKENS, L3_Layer->mlp_down_proj->shape[0], L3_Layer->mlp_down_proj->shape[1], TILE_SIZE);
-    cudaDeviceSynchronize();
 
     return;
 }
